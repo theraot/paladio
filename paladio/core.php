@@ -1,10 +1,11 @@
-<?php
+<?php namespace paladio;
+
 	if (count(get_included_files()) == 1)
 	{
 		header('HTTP/1.0 404 Not Found', true, 404);
 		exit();
 	}
-	
+
 	//Disabling magic quotes at runtime taken from http://php.net/manual/en/security.magicquotes.disabling.php
 	if (get_magic_quotes_gpc())
 	{
