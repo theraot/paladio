@@ -1,7 +1,9 @@
 paladio
 =======
 
-PHP framework
+Paladio PHP framework
+
+The old paladio has been moved to [theraot/paladio-legacy](https://github.com/theraot/paladio-legacy)
 
 license
 =======
