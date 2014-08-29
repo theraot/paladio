@@ -17,8 +17,8 @@
 				unset($process[$key][$k]);
 				if (is_array($v))
 				{
-				$process[$key][stripslashes($k)] = $v;
-				$process[] = &$process[$key][stripslashes($k)];
+					$process[$key][stripslashes($k)] = $v;
+					$process[] = &$process[$key][stripslashes($k)];
 				}
 				else
 				{
