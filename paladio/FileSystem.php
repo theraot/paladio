@@ -11,7 +11,7 @@
 	}
 
 	/**
-	 * self
+	 * FileSystem
 	 * @package paladio
 	 */
 	final class self
@@ -56,6 +56,69 @@
 				$directory_separator = DIRECTORY_SEPARATOR;
 			}
 			return implode($directory_separator, $result);
+		}
+
+		private static function _GetFolderItemsRecursive(/*mixed*/ $pattern, /*string*/ $path, /*bool*/ $folders)
+		{
+			if ($folders === true)
+			{
+				$result = array();
+			}
+			else
+			{
+				$result = FileSystem::_GetFolderItems($pattern, $path, false);
+			}
+			$queue = array($path);
+			$branches = null;
+			$branches_index = -1;
+			$branches_length = -1;
+			while (true)
+			{
+				if ($branches === null)
+				{
+					if (count($queue) > 0)
+					{
+						$found = array_shift($queue);
+						$branches = FileSystem::_GetFolderItems('*', $found, true);
+						$branches_index = -1;
+						$branches_length = count($branches);
+					}
+					else
+					{
+						break;
+					}
+				}
+				else
+				{
+					$advanced = false;
+					$branches_index++;
+					if ($branches_index < $branches_length)
+					{
+						$advanced = true;
+					}
+					if ($advanced)
+					{
+						$found = $branches[$branches_index];
+						if ($folders !== false)
+						{
+							$result[] = $found;
+						}
+						if ($folders !== true)
+						{
+							$new = FileSystem::_GetFolderItems($pattern, $found, false);
+							$result = array_merge($result, $new);
+						}
+						$queue[] = $found;
+					}
+					else
+					{
+						$branches = null;
+						$branches_index = -1;
+						$branches_length = -1;
+					}
+				}
+			}
+			return $result;
 		}
 
 		private static function _ProcessPath(/*array*/ $folders)

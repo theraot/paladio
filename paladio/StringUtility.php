@@ -7,7 +7,7 @@
 	}
 
 	/**
-	 * FileSystem
+	 * StringUtility
 	 * @package paladio
 	 */
 	final class StringUtility
