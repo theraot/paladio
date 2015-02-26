@@ -124,7 +124,7 @@
 			{
 				self::$main = self::Prepare(realpath('..'));
 			}chdir($currentFolder);
-			self::$root = self::Prepare($_SERVER['DOCUMENT_ROOT']);
+			self::$root = self::Prepare(str_replace(array('\\', '/'), DIRECTORY_SEPARATOR, $_SERVER['DOCUMENT_ROOT']));
 			$salt = filemtime(self::$root);
 			$uname = php_uname('n');
 			$md5 = md5($uname.self::$root.$salt);
