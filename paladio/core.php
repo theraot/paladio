@@ -146,3 +146,12 @@
 			require_once(Core::FolderMain().$classname.'.php');
 		}
 	);
+	
+	foreach (glob(Core::FolderCore().'*.boot.php', GLOB_MARK | GLOB_NOSORT) as $item)
+	{
+		$isDir = substr($item,-strlen(DIRECTORY_SEPARATOR)) === DIRECTORY_SEPARATOR;
+		if ($isDir === false)
+		{
+			require_once($item);
+		}
+	}
