@@ -29,7 +29,11 @@
 		 */
 		public static function EndsWith(/*string*/ $string, /*string*/ $with)
 		{
-			if (substr($string, strlen($string) - strlen($with)) === $with)
+			if ($with === '')
+			{
+				return true;
+			}
+			if (substr($string, -strlen($with)) === $with)
 			{
 				return true;
 			}
@@ -156,9 +160,14 @@
 		 */
 		public static function TryNeglectEnd(/*string*/ $string, /*string*/ $ending, /*string*/ &$result)
 		{
+			if ($ending === '')
+			{
+				$result = $string;
+				return true;
+			}
 			$length = strlen($string);
 			$endLength = strlen($ending);
-			if (substr($string, $length - $endLength) === $ending)
+			if (substr($string, -$endLength) === $ending)
 			{
 				if ($length < $endLength)
 				{
@@ -167,7 +176,7 @@
 				}
 				else
 				{
-					$result = substr($string, 0, $length - $endLength);
+					$result = substr($string, 0, -$endLength);
 				}
 				return true;
 			}
@@ -223,6 +232,6 @@
 		 */
 		public function __construct()
 		{
-			throw new Exception('Creating instances of '.__CLASS__.' is forbidden');
+			throw new \Exception('Creating instances of '.__CLASS__.' is forbidden');
 		}
 	}

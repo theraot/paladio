@@ -5,16 +5,14 @@
 		header('HTTP/1.0 404 Not Found');
 		exit();
 	}
-	else
-	{
-		require_once('StringUtility.php');
-	}
+
+	// This file assumes StringUtility is available
 
 	/**
 	 * FileSystem
 	 * @package paladio
 	 */
-	final class self
+	final class FileSystem
 	{
 		//------------------------------------------------------------
 		// Private (Class)
@@ -58,7 +56,43 @@
 			return implode($directory_separator, $result);
 		}
 
-		private static function _GetFolderItemsRecursive(/*mixed*/ $pattern, /*string*/ $path, /*bool*/ $folders)
+		private static function _GetItems(/*mixed*/ $pattern, /*string*/ $path, /*bool*/ $folders)
+		{
+			if (is_array($pattern))
+			{
+				$result = array();
+				foreach($pattern as $pattern)
+				{
+					$result = array_merge($result, self::_GetItems($pattern, $path, $folders));
+				}
+				return $result;
+			}
+			else
+			{
+				if (!is_string($pattern))
+				{
+					$pattern = '*';
+				}
+				//---
+				if (is_string($path))
+				{
+					$pattern = self::CombinePath($path, $pattern, DIRECTORY_SEPARATOR);
+				}
+				//---
+				$result = array();
+				foreach (glob($pattern, GLOB_MARK | GLOB_NOSORT) as $item)
+				{
+					$isDir = substr($item,-strlen(DIRECTORY_SEPARATOR)) === DIRECTORY_SEPARATOR;
+					if ($folders === null || ($folders === true && $isDir === true) || ($folders === false && $isDir === false))
+					{
+						$result[] = $item;
+					}
+				}
+				return $result;
+			}
+		}
+
+		private static function _GetItemsRecursive(/*mixed*/ $pattern, /*string*/ $path, /*bool*/ $folders)
 		{
 			if ($folders === true)
 			{
@@ -66,7 +100,7 @@
 			}
 			else
 			{
-				$result = FileSystem::_GetFolderItems($pattern, $path, false);
+				$result = self::_GetItems($pattern, $path, false);
 			}
 			$queue = array($path);
 			$branches = null;
@@ -79,7 +113,7 @@
 					if (count($queue) > 0)
 					{
 						$found = array_shift($queue);
-						$branches = FileSystem::_GetFolderItems('*', $found, true);
+						$branches = self::_GetItems('*', $found, true);
 						$branches_index = -1;
 						$branches_length = count($branches);
 					}
@@ -105,7 +139,7 @@
 						}
 						if ($folders !== true)
 						{
-							$new = FileSystem::_GetFolderItems($pattern, $found, false);
+							$new = self::_GetItems($pattern, $found, false);
 							$result = array_merge($result, $new);
 						}
 						$queue[] = $found;
@@ -154,6 +188,161 @@
 		//------------------------------------------------------------
 		// Public (Class)
 		//------------------------------------------------------------
+		
+		/**
+		* Retrieves the files that match the pattern in $pattern and are in the folder $path.
+		*
+		* If $pattern is string: it will be interpreted as a relative path followed by a Windows file search pattern.
+		* The Windows file search pattern uses:
+		* "?" : any character
+		* "*" : any character, zero or more times
+		* Otherwise, it will be interpretated as the Windows file search pattern "*".
+		*
+		* Note: files which name starts with "." are ignored.
+		*
+		* Returns an array that contains the absolute path of the files.
+		*
+		* @access public
+		* @return array of string
+		*/
+		public static function GetFiles(/*mixed*/ $pattern, /*string*/ $path)
+		{
+			return FileSystem::_GetItems($pattern, $path, false);
+		}
+		
+		/**
+		* Recursively retrieves the files that match the pattern in $pattern and are in the folder $path.
+		*
+		* If $pattern is string: it will be interpreted as a relative path followed by a Windows file search pattern.
+		* The Windows file search pattern uses:
+		* "?" : any character
+		* "*" : any character, zero or more times
+		* Otherwise, it will be interpretated as the Windows file search pattern "*".
+		*
+		* Note: files which name starts with "." are ignored.
+		*
+		* Returns an array that contains the absolute path of the files.
+		*
+		* @access public
+		* @return array of string
+		*/
+		public static function GetFilesRecursive(/*mixed*/ $pattern, /*string*/ $path)
+		{
+			return FileSystem::_GetItemsRecursive($pattern, $path, false);
+		}
+		
+		/**
+		* Retrieves the files and folders that match the pattern in $pattern and are in the folder $path.
+		*
+		* If $pattern is string: it will be interpreted as a relative path followed by a Windows file search pattern.
+		* The Windows file search pattern uses:
+		* "?" : any character
+		* "*" : any character, zero or more times
+		* Otherwise, it will be interpretated as the Windows file search pattern "*".
+		*
+		* Note: files which name starts with "." are ignored.
+		*
+		* Returns an array that contains the absolute path of the files and folders.
+		*
+		* @access public
+		* @return array of string
+		*/
+		public static function GetItems(/*mixed*/ $pattern, /*string*/ $path)
+		{
+			return FileSystem::_GetItems($pattern, $path, null);
+		}
+		
+		/**
+		* Recursively retrieves the files and folders that match the pattern in $pattern and are in the folder $path.
+		*
+		* If $pattern is string: it will be interpreted as a relative path followed by a Windows file search pattern.
+		* The Windows file search pattern uses:
+		* "?" : any character
+		* "*" : any character, zero or more times
+		* Otherwise, it will be interpretated as the Windows file search pattern "*".
+		*
+		* Note: files which name starts with "." are ignored.
+		*
+		* Returns an array that contains the absolute path of the files and folders.
+		*
+		* @access public
+		* @return array of string
+		*/
+		public static function GetItemsRecursive(/*mixed*/ $pattern, /*string*/ $path)
+		{
+			return FileSystem::_GetItemsRecursive($pattern, $path, null);
+		}
+		
+		/**
+		* Retrieves the folders that match the pattern in $pattern and are in the folder $path.
+		*
+		* Returns an array that contains the absolute path of the folders.
+		*
+		* @access public
+		* @return array of string
+		*/
+		public static function GetFolders(/*string*/ $path)
+		{
+			return FileSystem::_GetItems('*', $path, true);
+		}
+		
+		/**
+		* Recursively retrieves the folders that match the pattern in $pattern and are in the folder $path.
+		*
+		* Note: files which name starts with "." are ignored.
+		*
+		* Returns an array that contains the absolute path of the folders.
+		*
+		* @access public
+		* @return array of string
+		*/
+		public static function GetFoldersRecursive(/*string*/ $path)
+		{
+			return FileSystem::_GetItemsRecursive('*', $path, true);
+		}
+
+		//------------------------------------------------------------
+
+		/**
+		 * Creates the path resulting from following $relativePath starting in $path.
+		 *
+		 * Note: both $path and $relativePath are expected to be string, no check is performed.
+		 *
+		 * @param $path: the path to be used as origin.
+		 * @param $relativePath: the path to be applied to the origin.
+		 * @param $directory_separator: the directory separator to be used in the result, if null DIRECTORY_SEPARATOR will be used.
+		 *
+		 * @access public
+		 * @return string
+		 */
+		public static function CombinePath(/*string*/ $path, /*string*/ $relativePath, /*string*/ $directory_separator = null)
+		{
+			$path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $path);
+			$leading = false;
+			if (StringUtility::TryNeglectStart($path, DIRECTORY_SEPARATOR, $path))
+			{
+				$leading = true;
+			}
+			$path = StringUtility::NeglectEnd($path, DIRECTORY_SEPARATOR);
+			$origin = explode(DIRECTORY_SEPARATOR, $path);
+			$origin = self::_ProcessPath($origin);
+			$count = count($origin);
+			if ($count == 0)
+			{
+				$absolute = array('.');
+			}
+			$relative = self::ProcessPath($relativePath);
+			if ($directory_separator === null)
+			{
+				$directory_separator = DIRECTORY_SEPARATOR;
+			}
+			$result = implode($directory_separator, self::_ProcessPath(array_merge($origin, $relative)));
+			if ($leading)
+			{
+				$result = StringUtility::EnsureStart($result, $directory_separator);
+			}
+			return $result;
+		}
 
 		/**
 		 * Creates the relative path thats needed to go from $absolutePath to $targetPath.
@@ -172,22 +361,9 @@
 		 */
 		public static function CreateRelativePath(/*string*/ $absolutePath, /*string*/ $targetPath, /*string*/ $directory_separator = null)
 		{
-			$absolute = self::ProcessAbsolutePath($absolutePath);
-			$target = self::ProcessAbsolutePath($targetPath);
+			$absolute = self::ProcessPath($absolutePath);
+			$target = self::ProcessPath($targetPath);
 			return self::_CreateRelativePath($absolute, $target, $directory_separator);
-		}
-
-		/**
-		 * Retrieves the path of the folder in which this file is stored.
-		 *
-		 * Returns the path of the folder in which this file is stored, the path uses DIRECTORY_SEPARATOR as separator and does include the ending DIRECTORY_SEPARATOR.
-		 *
-		 * @access public
-		 * @return string
-		 */
-		public static function FolderCore()
-		{
-			return self::PreparePath(dirname(__FILE__));
 		}
 
 		/**
@@ -208,74 +384,35 @@
 		}
 
 		/**
-		 * Extracts the components of the absolute path $absolutePath.
+		 * Extracts the components of the path $path.
 		 *
-		 * Note: $absolutePath is expected to be string, no check is performed.
+		 * Note: $path is expected to be string, no check is performed.
 		 *
-		 * @param $absolutepath: the path to be processed.
+		 * @param $path: the path to be processed.
 		 *
-		 * Returns an array that containts each component of the absolute path $absolutePath.
-		 *
-		 * @access public
-		 * @return array of string
-		 */
-		public static function ProcessAbsolutePath(/*string*/ $absolutePath)
-		{
-			$absolutePath = StringUtility::NeglectEnd(str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $absolutePath), DIRECTORY_SEPARATOR);
-			$folders = explode(DIRECTORY_SEPARATOR, $absolutePath);
-			return self::_ProcessPath($folders);
-		}
-
-		/**
-		 * Extracts the components of the relative path $relativePath.
-		 *
-		 * Note: $relativePath is expected to be string, no check is performed.
-		 *
-		 * @param $relativePath: the path to be processed.
-		 *
-		 * Returns an array that containts each component of the relative path $relativePath.
+		 * Returns an array that containts each component of the path $path.
 		 *
 		 * @access public
 		 * @return array of string
 		 */
-		public static function ProcessRelativePath(/*string*/ $relativePath)
+		public static function ProcessPath(/*string*/ $path)
 		{
-			$relativePath = StringUtility::NeglectStart(str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $relativePath), DIRECTORY_SEPARATOR);
-			if ($relativePath === '')
+			$path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $path);
+			$path = StringUtility::NeglectStart($path, DIRECTORY_SEPARATOR);
+			$path = StringUtility::NeglectEnd($path, DIRECTORY_SEPARATOR);
+			$folders = explode(DIRECTORY_SEPARATOR, $path);
+			$folders = self::_ProcessPath($folders);
+			$count = count($folders);
+			if ($count == 0)
 			{
 				return array('.');
 			}
 			else
 			{
-				$folders = explode(DIRECTORY_SEPARATOR, $relativePath);
-				return self::_ProcessPath($folders);
+				return $folders;
 			}
 		}
-
-		/**
-		 * Creates the path resulting from following $relativePath starting in $absolutePath.
-		 *
-		 * Note: both $absolutePath and $relativePath are expected to be string, no check is performed.
-		 *
-		 * @param $absolutePath: the path to be used as origin.
-		 * @param $relativePath: the path to be applied to the origin.
-		 * @param $directory_separator: the directory separator to be used in the result, if null DIRECTORY_SEPARATOR will be used.
-		 *
-		 * @access public
-		 * @return string
-		 */
-		public static function ResolveRelativePath(/*string*/ $absolutePath, /*string*/ $relativePath, /*string*/ $directory_separator = null)
-		{
-			$absolute = self::ProcessAbsolutePath($absolutePath);
-			$relative = self::ProcessRelativePath($relativePath);
-			if ($directory_separator === null)
-			{
-				$directory_separator = DIRECTORY_SEPARATOR;
-			}
-			$result = implode($directory_separator, self::_ProcessPath(array_merge($absolute, $relative)));
-			return $result;
-		}
-
+		
 		/**
 		 * Creates the relative path thats needed to go from $newAbsolutePath to the location of following $relativePath starting in $oldAbsolutePath
 		 *
@@ -293,12 +430,43 @@
 		 */
 		public static function RebaseRelativePath(/*string*/ $newAbsolutePath, /*string*/ $oldAbsolutePath, /*string*/ $relativePath, /*string*/ $directory_separator = null)
 		{
-			$newAbsolute = self::ProcessAbsolutePath($newAbsolutePath);
-			$oldAbsolute = self::ProcessAbsolutePath($oldAbsolutePath);
-			$relative = self::ProcessRelativePath($relativePath);
-			$target = self::_ProcessPath(array_merge($oldAbsolute, $relative));
-			$result = self::_CreateRelativePath($newAbsolute, $target, $directory_separator);
-			return $result;
+			$target = self::CombinePath($oldAbsolutePath, $relativePath);
+			return self::CreateRelativePath($newAbsolutePath, $target, $directory_separator);
+		}
+		
+		//------------------------------------------------------------
+		
+		/**
+		* Retrieves the absolute path of the requested script.
+		*
+		* Returns the value of $_SERVER['SCRIPT_FILENAME'] with any "/" or "\" replaced to DIRECTORY_SEPARATOR.
+		*
+		* @access public
+		* @return string
+		*/
+		public static function ScriptPath()
+		{
+			return str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $_SERVER['SCRIPT_FILENAME']);
+		}
+		
+		/**
+		* Creates the relative path needed to go from $absolutePath to the absolute path of the requested script as given by FileSystem::ScriptPath().
+		*
+		* If $absolutePath is null: Creates the relative path needed to go from FileSystem::DocumentRoot() to FileSystem::ScriptPath().
+		* Otehrwise: Assumes $absolutePath is string and creates the relative path needed to go from $absolutePath to FileSystem::ScriptPath().
+		*
+		* Note: $absolutePath is expected to be null or string, no check is performed.
+		*
+		* @access public
+		* @return string
+		*/
+		public static function ScriptPathRelative(/*string*/ $absolutePath = null, $directory_separator = '/')
+		{
+			if ($absolutePath === null)
+			{
+				$absolutePath = Core::FolderRoot();
+			}
+			return $directory_separator.FileSystem::CreateRelativePath($absolutePath, self::ScriptPath(), $directory_separator);
 		}
 
 		//------------------------------------------------------------
@@ -310,6 +478,6 @@
 		 */
 		public function __construct()
 		{
-			throw new Exception('Creating instances of '.__CLASS__.' is forbidden');
+			throw new \Exception('Creating instances of '.__CLASS__.' is forbidden');
 		}
 	}
